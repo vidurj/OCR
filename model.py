@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from OCR import generate
+from OCR import labeller
 
 
 class Network:
@@ -9,7 +10,6 @@ class Network:
         self.parameters = []
         self.images = tf.placeholder(tf.float32, shape=[batch_size, 28, 28])
         images = tf.reshape(self.images, [-1, 28, 28, 1])
-
 
         # conv1_1
         filters = 32
@@ -20,7 +20,7 @@ class Network:
             biases = tf.Variable(tf.constant(0.0, shape=[filters], dtype=tf.float32))
             out = tf.nn.bias_add(conv, biases)
             self.conv1_1 = tf.nn.relu(out, name=scope)
-            self.parameters += [kernel, biases]
+            self.parameters += [("conv_1_1_weights", kernel), ("conv_1_1_biases", biases)]
 
         # conv1_2
         with tf.name_scope('conv1_2') as scope:
@@ -31,7 +31,7 @@ class Network:
                                  trainable=True, name='biases')
             out = tf.nn.bias_add(conv, biases)
             self.conv1_2 = tf.nn.relu(out, name=scope)
-            self.parameters += [kernel, biases]
+            self.parameters += [("conv_1_2_weights", kernel), ("conv_1_2_biases", biases)]
 
         # pool1
         self.pool1 = tf.nn.max_pool(self.conv1_2,
@@ -49,7 +49,7 @@ class Network:
                                  trainable=True, name='biases')
             out = tf.nn.bias_add(conv, biases)
             self.conv2_1 = tf.nn.relu(out, name=scope)
-            self.parameters += [kernel, biases]
+            self.parameters += [("conv_2_1_weights", kernel), ("conv_2_1_biases", biases)]
 
         # conv2_2
         with tf.name_scope('conv2_2') as scope:
@@ -60,7 +60,7 @@ class Network:
                                  trainable=True, name='biases')
             out = tf.nn.bias_add(conv, biases)
             self.conv2_2 = tf.nn.relu(out, name=scope)
-            self.parameters += [kernel, biases]
+            self.parameters += [("conv_2_2_weights", kernel), ("conv_2_2_biases", biases)]
 
         # pool2
         self.pool2 = tf.nn.max_pool(self.conv2_2,
@@ -79,14 +79,14 @@ class Network:
             pool2_flat = tf.reshape(self.pool2, [-1, shape])
             fc1l = tf.nn.bias_add(tf.matmul(pool2_flat, fc1w), fc1b)
             self.fc1 = tf.nn.relu(fc1l)
-            self.parameters += [fc1w, fc1b]
+            self.parameters += [("fc1w", fc1w), ("fc1b", fc1b)]
 
         # fc 2 weights
-        fc2w = tf.Variable(tf.truncated_normal([400, 64],
+        fc2w = tf.Variable(tf.truncated_normal([400, len(labeller)],
                                                dtype=tf.float32,
                                                stddev=1e-1))
-        fc2b = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32))
-        self.parameters += [fc2w, fc2b]
+        fc2b = tf.Variable(tf.constant(0.0, shape=[len(labeller)], dtype=tf.float32))
+        self.parameters += [("fc2w", fc2w), ("fc2b", fc2b)]
 
         # LSTM
         lstm_size = 400
@@ -128,14 +128,14 @@ class Network:
         batch_images, batch_labels = generate(self.batch_size)
         feed_dict = {self.images: batch_images, self.labels: batch_labels}
         _, loss = self.sess.run([self.optimize, self.loss], feed_dict=feed_dict)
-        print "Training loss is ", loss
+        print("Training loss is ", loss)
         return loss
 
     def train_print_accuracy(self):
         batch_images, batch_labels = generate(self.batch_size)
         feed_dict = {self.images: batch_images, self.labels: batch_labels}
         _, loss, ac1, ac2, ac3 = self.sess.run([self.optimize, self.loss] + self.accuracies, feed_dict=feed_dict)
-        print "Training loss is ", loss, "accuracies", ac1, ac2, ac3
+        print("Training loss is ", loss, "accuracies", ac1, ac2, ac3)
         return loss
 
     def test(self, batch_images):

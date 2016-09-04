@@ -1,11 +1,10 @@
 from model import Network
-import os
+import os, cv2
 import numpy as np
-import cv2
 from OCR import labeller, generate
 import pylab as plt
 
-revLabeller = dict([(v, k) for k, v in labeller.iteritems()])
+revLabeller = dict([(v, k) for k, v in labeller.items()])
 
 def printBestChars(distributions):
     bestOnes = np.argmax(distributions, axis=1)
@@ -26,6 +25,8 @@ def getFilesInDir(directory, extension):
 
 test_data = getFilesInDir("test_images", ".npy")
 
+test_data, batch_labels = generate(100)
+
 model = Network(len(test_data))
 model.load_weights("next_gen.weights")
 
@@ -39,13 +40,13 @@ for x, y, z in zip(*results):
     count+=1
 
 
-running_avg = 0
-for i in range(1, 10**8):
-    print i
-    loss = model.train_print_accuracy()
-    running_avg = 0.99 * running_avg + 0.01 * loss
-    print "avg", running_avg
-    if i % 3000 == 0:
-        print "Saving"
-        model.save_weights("next_gen.weights")
-        print "Done"
+# running_avg = 0
+# for i in range(1, 10**8):
+#     print(i)
+#     loss = model.train()
+#     running_avg = 0.99 * running_avg + 0.01 * loss
+#     print("avg", running_avg)
+#     if i % 1000 == 0:
+#         print("Saving")
+#         model.save_weights("friday.weights")
+#         print("Done")
